@@ -16,7 +16,12 @@ jobs:
 
       # Instalar k6
       - name: Install k6
-        run: sudo apt-get install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:k6io/k6
+          sudo apt-get update
+          sudo apt-get install -y k6
 
       # Instalar jq (caso não esteja disponível)
       - name: Install jq
