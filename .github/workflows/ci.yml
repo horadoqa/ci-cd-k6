@@ -45,10 +45,10 @@ jobs:
           BASELINE_RQPS=10  # Exemplo de baseline de requests por segundo
 
           # Obter os dados consolidados do summary.json
-          TOTAL_REQUESTS=$(jq '.metrics.requests.count' summary.json)
+          TOTAL_REQUESTS=$(jq '.metrics.http_reqs.count' summary.json)
           AVG_RESPONSE_TIME=$(jq '.metrics.http_req_duration.avg' summary.json)
-          RQPS=$(jq '.metrics.requests.rate' summary.json)
-          ERROR_RATE=$(jq '.error_rate' summary.json)
+          RQPS=$(jq '.metrics.http_reqs.rate' summary.json)
+          ERROR_RATE=$(jq '.metrics.http_req_failed.passes' summary.json)
 
           # Inicializar uma variável de mensagem de erro
           ERROR_MESSAGE="Falha nos testes de desempenho! Resultados abaixo do esperado:"
