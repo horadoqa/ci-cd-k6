@@ -1,0 +1,84 @@
+name: CI with k6
+
+on:
+  push:
+    branches:
+      - main  # Ou outra branch de sua preferência
+
+jobs:
+  k6-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout do código
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      # Instalar k6
+      - name: Install k6
+        run: sudo apt-get install k6
+
+      # Instalar jq (caso não esteja disponível)
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      # Instalar mailutils para envio de e-mails
+      - name: Install mail client
+        run: sudo apt-get install mailutils
+
+      # Rodar os testes com k6
+      - name: Run k6 load test
+        id: k6-test
+        run: |
+          k6 run test.js --out json=results.json
+
+      # Comparar os resultados com o baseline e enviar e-mail em caso de falha
+      - name: Compare with baseline and send email if failed
+        run: |
+          BASELINE_REQUESTS=200  # Número esperado de requests
+          BASELINE_AVG_RESPONSE_TIME=1000  # Tempo médio de resposta esperado (em ms)
+          BASELINE_RQPS=10  # Exemplo de baseline de requests por segundo
+
+          # Obter o número de requests e o tempo médio de resposta do arquivo de resultados
+          TOTAL_REQUESTS=$(jq '.[0].metrics.requests.count' results.json)
+          AVG_RESPONSE_TIME=$(jq '.[0].metrics.http_req_duration.avg' results.json)
+          TEST_DURATION=$(jq '.[0].metrics.http_reqs.duration' results.json | jq 'last')  # Obter a duração do teste
+
+          # Calcular requests por segundo (RQPS)
+          if [ "$TEST_DURATION" -gt 0 ]; then
+            RQPS=$(echo "$TOTAL_REQUESTS / $TEST_DURATION" | bc -l)
+          else
+            RQPS=0
+          fi
+
+          echo "Requests por segundo: $RQPS"
+
+          # Inicializar uma variável de mensagem de erro
+          ERROR_MESSAGE="Falha nos testes de desempenho! Resultados abaixo do esperado:"
+
+          # Comparar os valores e adicionar a falha correspondente à mensagem de erro
+          if [ "$TOTAL_REQUESTS" -lt "$BASELINE_REQUESTS" ]; then
+            ERROR_MESSAGE="$ERROR_MESSAGE\n- Número de requests abaixo do esperado: Esperado >= $BASELINE_REQUESTS, Obtido: $TOTAL_REQUESTS"
+            echo $ERROR_MESSAGE
+          fi
+
+          if [ "$(echo "$AVG_RESPONSE_TIME > $BASELINE_AVG_RESPONSE_TIME" | bc -l)" -eq 1 ]; then
+            ERROR_MESSAGE="$ERROR_MESSAGE\n- Tempo médio de resposta acima do esperado: Esperado <= $BASELINE_AVG_RESPONSE_TIME, Obtido: $AVG_RESPONSE_TIME"
+            echo $ERROR_MESSAGE
+          fi
+
+          if [ "$(echo "$RQPS < $BASELINE_RQPS" | bc -l)" -eq 1 ]; then
+            ERROR_MESSAGE="$ERROR_MESSAGE\n- Requests por segundo abaixo do esperado: Esperado >= $BASELINE_RQPS, Obtido: $RQPS"
+            echo $ERROR_MESSAGE
+          fi
+
+          # # Verificar se algum parâmetro falhou e enviar o e-mail
+          # if [ -n "$ERROR_MESSAGE" ]; then
+          #   echo -e "$ERROR_MESSAGE" | \
+          #     mail -s "Alerta de Teste de Desempenho" -S smtp="smtp://$SMTP_SERVER:$SMTP_PORT" \
+          #     -S smtp-auth=login -S smtp-auth-user=$SMTP_USER -S smtp-auth-password=$SMTP_PASS \
+          #     seu-email@dominio.com
+          #   exit 1
+          # else
+          #   echo "Teste de desempenho aprovado!"
+          # fi
