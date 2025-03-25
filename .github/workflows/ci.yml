@@ -1,4 +1,5 @@
-name: CI with k6
+name: Continuos Integration with k6
+run-name: Executado por ${{ github.actor }} em ${{ github.run_number }}
 
 on:
   push:
@@ -12,7 +13,7 @@ jobs:
     steps:
       # Checkout do código
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # Instalar k6
       - name: Install k6
@@ -40,9 +41,9 @@ jobs:
       # Comparar os resultados com o baseline e enviar e-mail em caso de falha
       - name: Compare with baseline and send email if failed
         run: |
-          BASELINE_REQUESTS=200  # Número esperado de requests
+          BASELINE_REQUESTS=200            # Número esperado de requests
           BASELINE_AVG_RESPONSE_TIME=1000  # Tempo médio de resposta esperado (em ms)
-          BASELINE_RQPS=10  # Exemplo de baseline de requests por segundo
+          BASELINE_RQPS=10                 # Exemplo de baseline de requests por segundo
 
           # Obter os dados consolidados do summary.json
           TOTAL_REQUESTS=$(jq '.metrics.http_reqs.count' summary.json)

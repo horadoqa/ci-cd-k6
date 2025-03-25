@@ -8,7 +8,7 @@ export let options = {
 
 export default function () {
   group('Testando HOME', function () {
-    const res = http.get('https://www.globo.com');
+    const res = http.get('https://www.horadoqa.com.br/');
 
     // Verificando se o status da resposta é 200
     check(res, {
